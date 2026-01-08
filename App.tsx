@@ -1,8 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Menu, 
-  X, 
   ArrowRight, 
   Linkedin, 
   Mail, 
@@ -13,7 +11,6 @@ import {
   Zap, 
   Star, 
   Target, 
-  ChevronRight, 
   TrendingUp,
   Send
 } from 'lucide-react';
@@ -24,14 +21,36 @@ import {
   CORE_SKILLS, 
   COMPUTER_SKILLS, 
   REFERENCES 
-} from './constants';
+} from './constants.tsx';
 
 const Navbar = ({ activeSection }: { activeSection: string }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isNavVisible, setIsNavVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  // Determine if we are on the light (white) section
+  const isLightSection = activeSection === 'contact';
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const isMobileOrTablet = window.innerWidth < 1024;
+
+      setScrolled(currentScrollY > 20);
+
+      if (isMobileOrTablet) {
+        if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
+          setIsNavVisible(false);
+        } else {
+          setIsNavVisible(true);
+        }
+      } else {
+        setIsNavVisible(true);
+      }
+      
+      lastScrollY.current = currentScrollY;
+    };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -47,80 +66,77 @@ const Navbar = ({ activeSection }: { activeSection: string }) => {
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
-    setIsOpen(false);
     const element = document.querySelector(href);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      const offset = 0;
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = element.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     }
   };
 
   return (
-    <nav className="fixed w-full z-50 flex justify-center transition-all duration-500 ease-expo pt-4 md:pt-6 px-4 md:px-6 pointer-events-none">
+    <nav className={`fixed top-0 left-0 w-full z-[100] flex justify-center pt-4 md:pt-8 px-4 pointer-events-none transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] ${isNavVisible ? 'translate-y-0 opacity-100 scale-100' : '-translate-y-12 opacity-0 scale-95'}`}>
       <div 
         className={`
-          flex items-center justify-center px-6 md:px-10 py-2.5 md:py-3 pointer-events-auto
-          transition-all duration-500 ease-expo relative overflow-hidden will-change-transform
-          ${scrolled 
-            ? 'w-auto bg-white/[0.08] backdrop-blur-[30px] rounded-full border border-white/20 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]' 
-            : 'w-auto bg-transparent rounded-full border border-transparent'
-          }
+          flex items-center gap-1 sm:gap-2 md:gap-3 px-3 sm:px-8 py-2 md:py-3 pointer-events-auto
+          rounded-full relative overflow-hidden transition-all duration-700 border
+          ${isLightSection 
+            ? 'bg-black/90 border-black/10 shadow-[0_30px_60px_-12px_rgba(0,0,0,0.6)]' 
+            : 'bg-white/[0.08] border-white/10 shadow-[0_30px_60px_-12px_rgba(0,0,0,0.4)]'}
+          backdrop-blur-3xl
+          ${scrolled ? 'scale-95' : 'scale-100'}
         `}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.05] to-transparent pointer-events-none"></div>
-        <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
-
-        <div className="hidden md:flex space-x-10 lg:space-x-12 relative z-10">
-          {links.map(link => (
+        <div className={`absolute inset-0 bg-gradient-to-b ${isLightSection ? 'from-white/[0.15]' : 'from-white/[0.1]'} to-transparent pointer-events-none`}></div>
+        
+        {links.map(link => {
+          const isActive = activeSection === link.href.slice(1);
+          return (
             <a 
               key={link.name} 
               href={link.href}
               onClick={(e) => handleNavClick(e, link.href)}
-              className={`text-[9px] lg:text-[10px] font-bold tracking-[0.25em] transition-all duration-300 relative group uppercase ${activeSection === link.href.slice(1) ? 'text-yellow-400' : 'text-white/40 hover:text-white'}`}
+              className={`
+                text-[6px] sm:text-[8px] md:text-[10px] font-black tracking-widest
+                transition-all duration-500 relative group uppercase px-2 sm:px-4 py-2.5
+                ${isActive 
+                  ? 'text-yellow-400' 
+                  : (isLightSection ? 'text-white/60 hover:text-white' : 'text-white/30 hover:text-white')}
+              `}
             >
-              {link.name}
-              <span className={`absolute -bottom-1.5 left-0 h-0.5 bg-yellow-400 transition-all duration-500 ${activeSection === link.href.slice(1) ? 'w-full shadow-[0_0_10px_rgba(250,204,21,0.8)]' : 'w-0 group-hover:w-full'}`}></span>
+              <span className="relative z-10">{link.name}</span>
+              <span className={`
+                absolute bottom-1 left-1/2 -translate-x-1/2 h-0.5 md:h-1 rounded-full bg-yellow-400 
+                transition-all duration-700 ease-[cubic-bezier(0.19,1,0.22,1)]
+                ${isActive
+                  ? 'w-4 opacity-100 shadow-[0_0_15px_rgba(250,204,21,1)]' 
+                  : 'w-0 opacity-0 group-hover:w-2 group-hover:opacity-40'}
+              `}></span>
             </a>
-          ))}
-        </div>
-
-        <div className="md:hidden relative z-10 flex items-center justify-center">
-          <button onClick={() => setIsOpen(!isOpen)} className="text-white hover:text-yellow-400 transition-colors p-2" aria-label="Toggle Menu">
-            {isOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
+          );
+        })}
       </div>
-
-      {isOpen && (
-        <div className="fixed inset-0 w-full h-full bg-black/95 backdrop-blur-2xl flex flex-col justify-center items-center space-y-6 z-40 animate-in fade-in zoom-in duration-300 pointer-events-auto">
-          {links.map((link, i) => (
-            <a 
-              key={link.name} 
-              href={link.href} 
-              onClick={(e) => handleNavClick(e, link.href)}
-              className="text-4xl sm:text-5xl font-black italic text-white hover:text-yellow-400 transform hover:scale-105 transition-all uppercase tracking-tighter"
-              style={{ animationDelay: `${i * 50}ms` }}
-            >
-              {link.name}
-            </a>
-          ))}
-          <button onClick={() => setIsOpen(false)} className="mt-12 text-white/20 hover:text-white transition-colors">
-            <X size={32} />
-          </button>
-        </div>
-      )}
     </nav>
   );
 };
 
 const SectionHeading = ({ children, isVisible }: { children?: React.ReactNode, isVisible: boolean }) => (
-  <div className={`mb-6 md:mb-12 transition-all duration-700 ease-expo transform will-change-transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-    <h2 className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter italic uppercase text-white leading-[0.9]">
+  <div className={`mb-8 md:mb-16 transition-all duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform will-change-transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0'}`}>
+    <h2 className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter italic uppercase text-white leading-[0.85]">
       {children}
     </h2>
   </div>
 );
 
 const App = () => {
+  const [isLoading, setIsLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('home');
   const sections = ['home', 'about', 'skills', 'achievements', 'experience', 'contact'];
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -132,14 +148,25 @@ const App = () => {
   const [visibleSlides, setVisibleSlides] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      threshold: [0.1, 0.3, 0.5],
+      rootMargin: "0px"
+    };
+
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
           setActiveSection(entry.target.id);
           setVisibleSlides(prev => ({ ...prev, [entry.target.id]: true }));
         }
       });
-    }, { threshold: 0.25 });
+    }, observerOptions);
 
     sections.forEach(id => {
       const el = document.getElementById(id);
@@ -155,7 +182,7 @@ const App = () => {
       const { left, width } = containerRef.current.getBoundingClientRect();
       const relativeX = e.clientX - left;
       const centerX = width / 2;
-      const offset = (relativeX - centerX) / 50;
+      const offset = (relativeX - centerX) / 80;
       setParallaxOffset(offset);
     }
   };
@@ -167,7 +194,6 @@ const App = () => {
     setScrollLeftState(scrollRef.current?.scrollLeft || 0);
     if (scrollRef.current) {
       scrollRef.current.style.scrollBehavior = 'auto';
-      scrollRef.current.style.scrollSnapType = 'none';
     }
   };
 
@@ -175,7 +201,6 @@ const App = () => {
     setIsDragging(false);
     if (scrollRef.current) {
       scrollRef.current.style.scrollBehavior = 'smooth';
-      scrollRef.current.style.scrollSnapType = 'x mandatory';
     }
   };
 
@@ -183,47 +208,55 @@ const App = () => {
     if (!isDragging || !scrollRef.current) return;
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).pageX;
     const x = clientX - scrollRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5;
+    const walk = (x - startX) * 1.8;
     scrollRef.current.scrollLeft = scrollLeftState - walk;
   };
 
   return (
-    <div className="bg-black text-white selection:bg-yellow-400 selection:text-black snap-y snap-mandatory h-screen overflow-y-auto scroll-smooth no-scrollbar">
+    <div className={`bg-black text-white selection:bg-yellow-400 selection:text-black min-h-screen overflow-x-hidden scroll-smooth transition-colors duration-1000 font-inter`}>
+      {/* Loading Overlay */}
+      <div className={`fixed inset-0 z-[200] bg-black flex items-center justify-center transition-all duration-1000 ease-expo ${isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-[10px] font-black tracking-[0.5em] text-white/50 uppercase italic">HUN LYFANG</span>
+        </div>
+      </div>
+
       <Navbar activeSection={activeSection} />
 
       {/* HERO SECTION */}
-      <section id="home" className="snap-start snap-always min-h-screen relative flex flex-col justify-center items-center overflow-hidden py-12">
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-[0.03] select-none transform-gpu">
+      <section id="home" className="min-h-[100svh] relative flex flex-col justify-center items-center overflow-hidden py-12 px-4">
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-[0.04] select-none transform-gpu">
           <span className="text-[18vw] font-black italic outline-text leading-none uppercase">INTERNATIONAL</span>
           <span className="text-[18vw] font-black italic outline-text leading-none uppercase">RELATIONS</span>
         </div>
 
-        <div className={`container mx-auto px-6 relative z-10 text-center transition-all duration-1000 ease-expo will-change-transform ${visibleSlides.home ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-[16vw] lg:text-[10vw] font-black italic leading-[0.85] tracking-tighter uppercase mb-6 md:mb-8">
+        <div className={`container mx-auto relative z-10 text-center transition-all duration-1000 ease-expo will-change-transform ${visibleSlides.home && !isLoading ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+          <div className="max-w-5xl mx-auto">
+            <h1 className="text-[18vw] lg:text-[11vw] font-black italic leading-[0.8] tracking-tighter uppercase mb-8">
               HUN <br />
-              <span className="text-yellow-400 drop-shadow-[0_0_30px_rgba(250,204,21,0.4)]">LYFANG</span>
+              <span className="text-yellow-400 drop-shadow-[0_0_40px_rgba(250,204,21,0.5)]">LYFANG</span>
             </h1>
-            <p className="mx-auto max-w-xl text-base md:text-xl text-white/50 leading-relaxed font-medium mb-10 md:mb-12">
-              <span className="text-white">First year student</span> majoring in <span className="text-white">International Relations</span> at IISPP. 
+            <p className="mx-auto max-w-2xl text-base md:text-2xl text-white/60 leading-relaxed font-medium mb-12 px-4">
+              <span className="text-white">First year student</span> majoring in <span className="text-white">International Relations</span> at IISPP, crafting global perspectives.
             </p>
-            <div className="flex flex-col items-center gap-6 md:gap-8">
+            <div className="flex flex-col items-center gap-10">
               <a 
                 href="#about" 
                 onClick={(e) => {
                   e.preventDefault();
                   document.querySelector('#about')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="group bg-white text-black px-10 md:px-14 py-4 md:py-6 font-black italic uppercase tracking-tighter flex items-center gap-3 hover:bg-yellow-400 transition-all duration-300 transform hover:-translate-y-1 shadow-[0_15px_30px_rgba(255,255,255,0.1)] hover:shadow-yellow-400/30"
+                className="group bg-white text-black px-12 md:px-16 py-5 md:py-8 font-black italic uppercase tracking-tighter flex items-center gap-4 hover:bg-yellow-400 transition-all duration-500 transform hover:-translate-y-2 shadow-[0_20px_40px_rgba(255,255,255,0.1)] hover:shadow-yellow-400/40"
               >
-                DISCOVER MORE <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform duration-300" />
+                DISCOVER MORE <ArrowRight size={24} className="group-hover:translate-x-3 transition-transform duration-500" />
               </a>
-              <div className="flex items-center gap-6 md:gap-10 text-white/20">
-                 <a href="mailto:Lyfang011@gmail.com" className="hover:text-yellow-400 transition-all duration-300 transform hover:scale-125"><Mail size={22}/></a>
-                 <a href="https://www.linkedin.com/in/hun-lyfang-4531073a5" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-400 transition-all duration-300 transform hover:scale-125"><Linkedin size={22}/></a>
-                 <a href="https://t.me/LyfangHun" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-400 transition-all duration-300 transform hover:scale-125"><Send size={22}/></a>
-                 <div className="flex items-center gap-2 text-[9px] md:text-xs font-bold tracking-[0.2em] uppercase text-white/30">
-                  <MapPin size={14} className="text-yellow-400/70"/> PHNOM PENH
+              <div className="flex items-center gap-8 md:gap-14 text-white/30">
+                 <a href="mailto:Lyfang011@gmail.com" className="hover:text-yellow-400 transition-all duration-300 transform hover:scale-125"><Mail size={24}/></a>
+                 <a href="https://www.linkedin.com/in/hun-lyfang-4531073a5" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-400 transition-all duration-300 transform hover:scale-125"><Linkedin size={24}/></a>
+                 <a href="https://t.me/LyfangHun" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-400 transition-all duration-300 transform hover:scale-125"><Send size={24}/></a>
+                 <div className="flex items-center gap-3 text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase text-white/40">
+                  <MapPin size={16} className="text-yellow-400/80"/> PHNOM PENH
                  </div>
               </div>
             </div>
@@ -232,31 +265,35 @@ const App = () => {
       </section>
 
       {/* ABOUT SECTION */}
-      <section id="about" className="snap-start snap-always min-h-screen py-24 bg-zinc-900/10 border-y border-white/5 relative flex flex-col justify-center">
-        <div className={`container mx-auto px-6 transition-all duration-1000 ease-expo ${visibleSlides.about ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center">
+      <section id="about" className="min-h-screen py-32 bg-zinc-900/[0.05] border-y border-white/[0.03] relative flex flex-col justify-center">
+        <div className="absolute inset-0 noise-bg opacity-[0.03] pointer-events-none"></div>
+        <div className={`container mx-auto px-6 transition-all duration-[1200ms] ease-expo ${visibleSlides.about ? 'scale-100 opacity-100 translate-y-0' : 'scale-[0.98] opacity-0 translate-y-24'}`}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-32 items-center">
             <div className="transition-all duration-700 ease-expo">
               <SectionHeading isVisible={visibleSlides.about}>ABOUT ME</SectionHeading>
-              <div className="space-y-4 md:space-y-6 text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black italic uppercase tracking-tighter leading-[1] text-white">
+              <div className="space-y-6 md:space-y-8 text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black italic uppercase tracking-tighter leading-[0.95] text-white">
                 <p className="leading-tight">
                   i'm a first year student <br />
-                  majoring in <span className="text-yellow-400">international relations</span>
+                  pursuing <span className="text-yellow-400">international relations</span>
+                </p>
+                <p className="text-lg md:text-2xl font-medium normal-case italic text-white/40 tracking-normal leading-relaxed">
+                  Dedicated to understanding the complexities of global diplomacy, policy-making, and cultural exchange.
                 </p>
               </div>
             </div>
             
-            <div className={`grid grid-cols-2 gap-3 md:gap-6 transition-all duration-700 ease-expo delay-100 ${visibleSlides.about ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
+            <div className={`grid grid-cols-2 gap-4 md:gap-8 transition-all duration-1000 ease-expo delay-300 ${visibleSlides.about ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0'}`}>
               {[
                 { icon: Target, title: 'IISPP', sub: 'Global Affairs' },
                 { icon: Globe, title: 'DIPLOMACY', sub: 'Intl. Relations' },
                 { icon: Zap, title: 'GOLD', sub: 'Medalist (WSC)' },
                 { icon: Briefcase, title: 'STRATEGY', sub: 'Management' }
               ].map((item, i) => (
-                <div key={i} className="bg-zinc-900/30 p-5 md:p-8 lg:p-10 border border-white/5 flex flex-col justify-between aspect-square group hover:border-yellow-400/40 hover:bg-zinc-900/50 transition-all duration-500 transform hover:-translate-y-1">
-                  <item.icon className="text-yellow-400 mb-4 md:mb-8 transition-transform group-hover:scale-110" size={32} />
+                <div key={i} className="bg-zinc-900/40 p-6 md:p-12 border border-white/5 flex flex-col justify-between aspect-square group hover:border-yellow-400/50 hover:bg-zinc-900/70 transition-all duration-700 transform hover:-translate-y-3 rounded-sm">
+                  <item.icon className="text-yellow-400 mb-6 md:mb-12 transition-transform group-hover:scale-110 group-hover:rotate-6" size={40} />
                   <div>
-                    <h4 className="text-lg md:text-2xl lg:text-3xl font-black italic leading-none mb-2 group-hover:text-yellow-400 transition-colors uppercase">{item.title}</h4>
-                    <p className="text-[8px] md:text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">{item.sub}</p>
+                    <h4 className="text-xl md:text-3xl font-black italic leading-none mb-3 group-hover:text-yellow-400 transition-colors uppercase">{item.title}</h4>
+                    <p className="text-[9px] md:text-[11px] font-bold text-white/30 uppercase tracking-[0.3em]">{item.sub}</p>
                   </div>
                 </div>
               ))}
@@ -266,22 +303,22 @@ const App = () => {
       </section>
 
       {/* SKILLS SECTION */}
-      <section id="skills" className="snap-start snap-always min-h-screen py-24 flex flex-col justify-center overflow-hidden">
-        <div className={`container mx-auto px-6 w-full transition-all duration-1000 ease-expo ${visibleSlides.skills ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+      <section id="skills" className="min-h-screen py-32 flex flex-col justify-center overflow-hidden">
+        <div className={`container mx-auto px-6 w-full transition-all duration-[1200ms] ease-expo ${visibleSlides.skills ? 'scale-100 opacity-100' : 'scale-[0.98] opacity-0'}`}>
           <SectionHeading isVisible={visibleSlides.skills}>skills</SectionHeading>
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 md:gap-20">
-            <div className="lg:col-span-8 space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 md:gap-24">
+            <div className="lg:col-span-8 space-y-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10">
                 {CORE_SKILLS.map((skill, i) => (
                   <div key={skill.name} className="group transition-all duration-500">
-                    <div className="flex justify-between items-end mb-3">
-                      <span className="text-[10px] md:text-xs font-bold tracking-widest text-white/30 group-hover:text-white transition-colors uppercase">{skill.name}</span>
-                      <span className="text-[10px] md:text-xs font-black italic text-yellow-400">{skill.level}%</span>
+                    <div className="flex justify-between items-end mb-4">
+                      <span className="text-[11px] md:text-xs font-black tracking-[0.3em] text-white/30 group-hover:text-white transition-colors uppercase">{skill.name}</span>
+                      <span className="text-[11px] md:text-xs font-black italic text-yellow-400">{skill.level}%</span>
                     </div>
                     <div className="h-1.5 bg-white/5 overflow-hidden rounded-full">
                       <div 
-                        className={`h-full bg-gradient-to-r from-white to-yellow-400 transition-all duration-1000 ease-expo will-change-[width]`} 
+                        className={`h-full bg-gradient-to-r from-yellow-600 to-yellow-400 transition-all duration-[1500ms] ease-[cubic-bezier(0.19,1,0.22,1)] will-change-[width]`} 
                         style={{ width: visibleSlides.skills ? `${skill.level}%` : '0%' }}
                       ></div>
                     </div>
@@ -290,30 +327,30 @@ const App = () => {
               </div>
             </div>
 
-            <div className="lg:col-span-4 space-y-10">
-              <div className="flex flex-wrap gap-2">
+            <div className="lg:col-span-4 space-y-12 transition-all duration-1000 delay-500">
+              <div className="flex flex-wrap gap-3">
                 {COMPUTER_SKILLS.map((tool) => (
-                  <span key={tool} className="bg-white/5 border border-white/5 px-4 py-2 text-[9px] md:text-[10px] font-bold text-white/40 hover:text-black hover:bg-yellow-400 transition-all duration-300 uppercase tracking-widest">
+                  <span key={tool} className="bg-white/5 border border-white/10 px-6 py-3 text-[10px] md:text-[11px] font-black text-white/50 hover:text-black hover:bg-yellow-400 transition-all duration-500 uppercase tracking-[0.2em] rounded-sm">
                     {tool}
                   </span>
                 ))}
               </div>
-              <div className="p-8 border-l-2 border-yellow-400 bg-white/[0.03] group transition-all duration-500 hover:bg-white/[0.05]">
-                <p className="text-[9px] font-bold tracking-[0.3em] text-white/20 uppercase mb-6 italic">Language Proficiency</p>
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
+              <div className="p-10 border-l-4 border-yellow-400 bg-white/[0.04] group transition-all duration-700 hover:bg-white/[0.08] shadow-2xl">
+                <p className="text-[10px] font-black tracking-[0.4em] text-white/20 uppercase mb-8 italic">Language Proficiency</p>
+                <div className="space-y-8">
+                  <div className="flex justify-between items-center group/item">
                     <div>
-                      <p className="text-xl md:text-2xl font-black italic">ENGLISH</p>
-                      <p className="text-[9px] text-yellow-400 font-bold uppercase tracking-widest">Advanced</p>
+                      <p className="text-2xl md:text-3xl font-black italic transition-colors group-hover/item:text-yellow-400">ENGLISH</p>
+                      <p className="text-[10px] text-yellow-400/60 font-black uppercase tracking-widest mt-1">Advanced Level</p>
                     </div>
-                    <TrendingUp className="text-yellow-400 opacity-30" size={20} />
+                    <TrendingUp className="text-yellow-400 opacity-20 group-hover/item:opacity-100 transition-opacity" size={28} />
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center group/item">
                     <div>
-                      <p className="text-xl md:text-2xl font-black italic">KHMER</p>
-                      <p className="text-[9px] text-white/20 font-bold uppercase tracking-widest">Native Speaker</p>
+                      <p className="text-2xl md:text-3xl font-black italic transition-colors group-hover/item:text-yellow-400">KHMER</p>
+                      <p className="text-[10px] text-white/30 font-black uppercase tracking-widest mt-1">Native Proficiency</p>
                     </div>
-                    <Star className="text-yellow-400 opacity-30" size={20} />
+                    <Star className="text-yellow-400 opacity-20 group-hover/item:opacity-100 transition-opacity" size={28} />
                   </div>
                 </div>
               </div>
@@ -325,26 +362,29 @@ const App = () => {
       {/* ACHIEVEMENTS SECTION */}
       <section 
         id="achievements" 
-        className="snap-start snap-always min-h-screen py-24 bg-black relative overflow-hidden flex flex-col justify-center"
+        className="min-h-screen py-32 bg-black relative overflow-hidden flex flex-col justify-center"
         onMouseMove={handleMouseMove}
       >
-        <div className="absolute top-0 left-0 w-full overflow-hidden whitespace-nowrap opacity-[0.03] pointer-events-none py-8 transform-gpu">
+        <div className="absolute top-0 left-0 w-full overflow-hidden whitespace-nowrap opacity-[0.05] pointer-events-none py-12 transform-gpu">
           <div className="animate-marquee inline-block">
-            <span className="text-7xl md:text-9xl font-black italic uppercase mx-4 text-yellow-400">WINNER CHAMPION MEDALIST FINALIST TOP TIER WINNER CHAMPION MEDALIST FINALIST TOP TIER</span>
+            <span className="text-8xl md:text-[12rem] font-black italic uppercase mx-8 text-yellow-400">WINNER CHAMPION MEDALIST FINALIST TOP TIER WINNER CHAMPION MEDALIST FINALIST TOP TIER</span>
           </div>
           <div className="animate-marquee2 inline-block">
-            <span className="text-7xl md:text-9xl font-black italic uppercase mx-4 text-yellow-400">WINNER CHAMPION MEDALIST FINALIST TOP TIER WINNER CHAMPION MEDALIST FINALIST TOP TIER</span>
+            <span className="text-8xl md:text-[12rem] font-black italic uppercase mx-8 text-yellow-400">WINNER CHAMPION MEDALIST FINALIST TOP TIER WINNER CHAMPION MEDALIST FINALIST TOP TIER</span>
           </div>
         </div>
 
-        <div className={`container mx-auto px-6 mb-12 flex flex-col md:flex-row justify-between items-end relative z-10 gap-8 transition-all duration-1000 ease-expo ${visibleSlides.achievements ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div className={`container mx-auto px-6 mb-16 flex flex-col md:flex-row justify-between items-end relative z-10 gap-8 transition-all duration-1000 ease-expo ${visibleSlides.achievements ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
           <SectionHeading isVisible={visibleSlides.achievements}>achievement</SectionHeading>
-          <p className="text-[10px] font-bold tracking-[0.4em] text-white/20 uppercase hidden md:block">Scroll to Explore</p>
+          <div className="flex flex-col items-end gap-2">
+            <p className="text-[11px] font-black tracking-[0.5em] text-white/20 uppercase hidden md:block animate-pulse">Drag to Navigate</p>
+            <div className="h-0.5 w-16 bg-yellow-400/20 rounded-full hidden md:block"></div>
+          </div>
         </div>
         
         <div 
           ref={containerRef}
-          className={`relative z-10 transition-transform duration-700 ease-expo will-change-transform ${visibleSlides.achievements ? 'opacity-100' : 'opacity-0'}`}
+          className={`relative z-10 transition-transform duration-[1200ms] ease-expo will-change-transform ${visibleSlides.achievements ? 'opacity-100' : 'opacity-0'}`}
           style={{ transform: `translate3d(${-parallaxOffset}px, 0, 0)` }}
         >
           <div 
@@ -356,27 +396,27 @@ const App = () => {
             onTouchStart={startDragging}
             onTouchEnd={stopDragging}
             onTouchMove={moveDragging}
-            className="flex overflow-x-auto gap-6 md:gap-10 px-6 md:px-[10vw] no-scrollbar pb-10 snap-x snap-mandatory cursor-grab active:cursor-grabbing transform-gpu"
+            className="flex overflow-x-auto gap-8 md:gap-14 px-6 md:px-[10vw] no-scrollbar pb-16 cursor-grab active:cursor-grabbing transform-gpu"
           >
             {ACHIEVEMENTS.map((ach, idx) => (
               <div 
                 key={idx} 
-                className="min-w-[280px] md:min-w-[420px] snap-center bg-zinc-900/30 p-10 md:p-14 border border-white/5 hover:border-yellow-400/40 transition-all duration-500 group relative flex flex-col justify-between overflow-hidden will-change-transform"
+                className="min-w-[300px] md:min-w-[480px] bg-zinc-900/40 p-12 md:p-20 border border-white/5 hover:border-yellow-400/50 transition-all duration-700 group relative flex flex-col justify-between overflow-hidden will-change-transform rounded-sm shadow-2xl"
               >
-                <div className="absolute -bottom-6 -right-6 text-[8rem] md:text-[12rem] font-black italic text-white/[0.015] group-hover:text-yellow-400/[0.04] transition-colors leading-none pointer-events-none">
+                <div className="absolute -bottom-8 -right-8 text-[12rem] md:text-[18rem] font-black italic text-white/[0.02] group-hover:text-yellow-400/[0.06] transition-all leading-none pointer-events-none">
                   {idx + 1}
                 </div>
                 
-                <div className="flex justify-between items-start mb-12 lg:mb-20">
-                  <span className="text-5xl md:text-7xl font-black italic outline-text group-hover:text-yellow-400 transition-all duration-500">
+                <div className="flex justify-between items-start mb-16 lg:mb-24">
+                  <span className="text-6xl md:text-8xl font-black italic outline-text group-hover:text-yellow-400 transition-all duration-700">
                     {(idx + 1).toString().padStart(2, '0')}
                   </span>
-                  <span className="bg-yellow-400 text-black px-4 py-1 text-[9px] font-black italic tracking-widest transform -rotate-2 group-hover:rotate-0 transition-transform">
+                  <span className="bg-yellow-400 text-black px-6 py-2 text-[10px] md:text-xs font-black italic tracking-[0.2em] transform -rotate-3 group-hover:rotate-0 transition-all duration-500 shadow-xl">
                     {ach.year}
                   </span>
                 </div>
                 
-                <h4 className="text-xl md:text-3xl font-black italic leading-[1.1] uppercase tracking-tighter group-hover:text-white transition-colors mb-4 relative z-10">
+                <h4 className="text-2xl md:text-4xl lg:text-5xl font-black italic leading-[1.05] uppercase tracking-tighter group-hover:text-white transition-colors mb-6 relative z-10">
                   {ach.title}
                 </h4>
               </div>
@@ -386,32 +426,32 @@ const App = () => {
       </section>
 
       {/* EXPERIENCE SECTION */}
-      <section id="experience" className="snap-start snap-always min-h-screen py-24 relative flex flex-col justify-center">
-        <div className={`container mx-auto px-6 w-full transition-all duration-1000 ease-expo ${visibleSlides.experience ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+      <section id="experience" className="min-h-screen py-32 relative flex flex-col justify-center">
+        <div className={`container mx-auto px-6 w-full transition-all duration-[1200ms] ease-expo ${visibleSlides.experience ? 'scale-100 opacity-100 translate-y-0' : 'scale-[0.98] opacity-0 translate-y-24'}`}>
           <SectionHeading isVisible={visibleSlides.experience}>EXPERIENCE</SectionHeading>
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mt-8 md:mt-16">
-            <div className="lg:col-span-8 space-y-16">
-              <div className="relative pl-6 md:pl-8 border-l border-white/5">
-                <div className="absolute -left-[3px] top-0 w-[5px] h-12 bg-yellow-400"></div>
-                <h3 className="text-lg md:text-2xl font-black italic tracking-widest uppercase mb-10 text-yellow-400 flex items-center gap-4">
-                  <Briefcase size={18} /> INTERNSHIP
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 mt-12 md:mt-24">
+            <div className="lg:col-span-8 space-y-24">
+              <div className="relative pl-8 md:pl-12 border-l-2 border-white/10">
+                <div className="absolute -left-[5px] top-0 w-[8px] h-16 bg-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.5)]"></div>
+                <h3 className="text-xl md:text-3xl font-black italic tracking-[0.4em] uppercase mb-16 text-yellow-400 flex items-center gap-6">
+                  <Briefcase size={28} /> INTERNSHIP
                 </h3>
                 {INTERNSHIP_EXP.map((exp, i) => (
-                  <div key={i} className="mb-12 group transition-all duration-500">
-                    <div className="flex flex-col md:flex-row md:justify-between mb-4 md:mb-6">
-                      <div>
-                        <h4 className="text-2xl md:text-4xl font-black italic uppercase tracking-tighter group-hover:text-yellow-400 transition-colors">
+                  <div key={i} className="mb-16 group transition-all duration-500">
+                    <div className="flex flex-col md:flex-row md:justify-between mb-6 md:mb-10 items-start">
+                      <div className="max-w-xl">
+                        <h4 className="text-3xl md:text-5xl font-black italic uppercase tracking-tighter group-hover:text-yellow-400 transition-all duration-500 mb-2">
                           {exp.organization}
                         </h4>
-                        <p className="text-white/20 font-bold tracking-widest text-[9px] uppercase mt-1">{exp.role} • {exp.location}</p>
+                        <p className="text-white/40 font-black tracking-[0.3em] text-[10px] md:text-xs uppercase">{exp.role} • {exp.location}</p>
                       </div>
-                      <span className="text-[10px] font-black italic text-white/40 mt-2 md:mt-0 uppercase">{exp.period}</span>
+                      <span className="text-xs font-black italic text-white/40 mt-4 md:mt-0 uppercase bg-white/5 px-4 py-1.5 rounded-full border border-white/10">{exp.period}</span>
                     </div>
-                    <ul className="space-y-3">
+                    <ul className="space-y-5">
                       {exp.description.map((desc, di) => (
-                        <li key={di} className="text-white/40 text-sm md:text-lg flex gap-3 hover:text-white transition-colors leading-relaxed">
-                          <span className="text-yellow-400 font-bold">»</span> {desc}
+                        <li key={di} className="text-white/50 text-base md:text-xl flex gap-5 hover:text-white transition-all duration-500 leading-relaxed group/li">
+                          <span className="text-yellow-400 font-bold shrink-0 transition-transform group-hover/li:translate-x-1">»</span> <span className="font-medium">{desc}</span>
                         </li>
                       ))}
                     </ul>
@@ -419,40 +459,40 @@ const App = () => {
                 ))}
               </div>
 
-              <div className="relative pl-6 md:pl-8 border-l border-white/5">
-                <div className="absolute -left-[3px] top-0 w-[5px] h-12 bg-white/20"></div>
-                <h3 className="text-lg md:text-2xl font-black italic tracking-widest uppercase mb-10 text-white/30 flex items-center gap-4">
-                  <Globe size={18} /> VOLUNTEER
+              <div className="relative pl-8 md:pl-12 border-l-2 border-white/10 transition-all duration-1000 delay-300">
+                <div className="absolute -left-[5px] top-0 w-[8px] h-16 bg-white/30"></div>
+                <h3 className="text-xl md:text-3xl font-black italic tracking-[0.4em] uppercase mb-16 text-white/30 flex items-center gap-6">
+                  <Globe size={28} /> VOLUNTEER
                 </h3>
                 {VOLUNTEER_EXP.map((exp, i) => (
-                  <div key={i} className="mb-10 group transition-all duration-500">
-                    <div className="flex flex-col md:flex-row md:justify-between mb-4">
+                  <div key={i} className="mb-12 group transition-all duration-500">
+                    <div className="flex flex-col md:flex-row md:justify-between mb-6 items-start">
                       <div>
-                        <h4 className="text-xl md:text-3xl font-black italic uppercase tracking-tighter group-hover:text-yellow-400 transition-colors">{exp.organization}</h4>
-                        <p className="text-white/20 font-bold tracking-widest text-[9px] uppercase mt-1">{exp.role}</p>
+                        <h4 className="text-2xl md:text-4xl font-black italic uppercase tracking-tighter group-hover:text-yellow-400 transition-all duration-500 mb-1">{exp.organization}</h4>
+                        <p className="text-white/30 font-black tracking-[0.2em] text-[10px] md:text-xs uppercase">{exp.role}</p>
                       </div>
-                      <span className="text-[10px] font-black italic text-white/30 mt-2 md:mt-0 uppercase">{exp.period}</span>
+                      <span className="text-xs font-black italic text-white/30 mt-4 md:mt-0 uppercase">{exp.period}</span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="lg:col-span-4 space-y-8">
-              <h3 className="text-lg md:text-xl font-black italic tracking-widest uppercase mb-8 text-yellow-400 flex items-center gap-3">
-                <Target size={18} /> REFERENCES
+            <div className="lg:col-span-4 space-y-12 transition-all duration-1000 delay-600">
+              <h3 className="text-xl md:text-2xl font-black italic tracking-[0.3em] uppercase mb-12 text-yellow-400 flex items-center gap-4">
+                <Target size={24} /> REFERENCES
               </h3>
               {REFERENCES.map((ref, i) => (
-                <div key={i} className="p-6 bg-zinc-900/40 border border-white/5 group hover:border-yellow-400/40 transition-all duration-500">
-                  <h5 className="text-lg md:text-xl font-black italic uppercase mb-1 group-hover:text-yellow-400 transition-colors">{ref.name}</h5>
-                  <p className="text-[9px] font-bold text-yellow-400 uppercase mb-4 tracking-widest">{ref.title}</p>
-                  <p className="text-[9px] text-white/20 uppercase font-bold tracking-widest mb-6">{ref.org}</p>
-                  <div className="space-y-2">
-                    <a href={`tel:${ref.phone}`} className="flex items-center gap-3 text-[10px] font-bold text-white/40 hover:text-white transition-colors">
-                      <Phone size={12} className="text-yellow-400/50" /> {ref.phone}
+                <div key={i} className="p-8 bg-zinc-900/50 border border-white/5 group hover:border-yellow-400/50 transition-all duration-700 rounded-sm shadow-xl backdrop-blur-sm">
+                  <h5 className="text-xl md:text-2xl font-black italic uppercase mb-2 group-hover:text-yellow-400 transition-colors">{ref.name}</h5>
+                  <p className="text-[10px] font-black text-yellow-400/80 uppercase mb-5 tracking-[0.3em]">{ref.title}</p>
+                  <p className="text-[10px] text-white/30 uppercase font-black tracking-[0.2em] mb-8 border-t border-white/5 pt-4">{ref.org}</p>
+                  <div className="space-y-4">
+                    <a href={`tel:${ref.phone}`} className="flex items-center gap-4 text-[11px] md:text-xs font-black text-white/40 hover:text-white transition-all duration-500">
+                      <Phone size={16} className="text-yellow-400/60" /> {ref.phone}
                     </a>
-                    <a href={`mailto:${ref.email}`} className="flex items-center gap-3 text-[10px] font-bold text-white/40 hover:text-white transition-colors truncate">
-                      <Mail size={12} className="text-yellow-400/50" /> {ref.email}
+                    <a href={`mailto:${ref.email}`} className="flex items-center gap-4 text-[11px] md:text-xs font-black text-white/40 hover:text-white transition-all duration-500 truncate">
+                      <Mail size={16} className="text-yellow-400/60" /> {ref.email}
                     </a>
                   </div>
                 </div>
@@ -462,38 +502,38 @@ const App = () => {
         </div>
       </section>
 
-      {/* FOOTER / CONTACT SECTION */}
-      <footer id="contact" className="snap-start snap-always min-h-screen bg-white text-black py-24 flex flex-col justify-center items-center">
-        <div className={`container mx-auto px-6 w-full transition-all duration-1000 ease-expo ${visibleSlides.contact ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-12 lg:gap-20 mb-20 md:mb-32">
-            <div className="max-w-3xl">
-              <p className="font-black italic text-[10px] tracking-[0.4em] uppercase mb-8 text-black/20">GET IN TOUCH</p>
-              <h2 className="text-5xl md:text-[8vw] lg:text-[10vw] font-black italic leading-[0.85] tracking-tighter uppercase mb-4">
-                LET'S BUILD <br />
-                <span className="text-zinc-300">FUTURE</span> TOGETHER
+      {/* FOOTER / CONTACT SECTION - WHITE BACKGROUND */}
+      <footer id="contact" className="min-h-screen bg-white text-black py-32 flex flex-col justify-center items-center relative overflow-hidden">
+        <div className={`container mx-auto px-6 w-full transition-all duration-[1200ms] ease-expo ${visibleSlides.contact ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-32'}`}>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-16 lg:gap-32 mb-24 md:mb-48">
+            <div className="max-w-4xl">
+              <p className="font-black italic text-[11px] tracking-[0.6em] uppercase mb-10 text-black/30">LET'S CONNECT</p>
+              <h2 className="text-6xl md:text-[9vw] lg:text-[11vw] font-black italic leading-[0.75] tracking-tighter uppercase mb-6">
+                BUILD THE <br />
+                <span className="text-zinc-200">FUTURE</span> TOGETHER
               </h2>
             </div>
-            <div className="space-y-8 lg:text-right w-full lg:w-auto">
+            <div className="space-y-16 lg:text-right w-full lg:w-auto">
               <div className="group">
-                <p className="text-[10px] font-bold tracking-widest text-black/30 uppercase mb-2">Primary Inbox</p>
-                <a href="mailto:Lyfang011@gmail.com" className="text-2xl md:text-5xl lg:text-6xl font-black italic underline decoration-2 underline-offset-8 hover:text-yellow-500 transition-all block break-all">
+                <p className="text-[11px] font-black tracking-[0.4em] text-black/30 uppercase mb-6">Primary Inbox</p>
+                <a href="mailto:Lyfang011@gmail.com" className="text-2xl md:text-5xl lg:text-7xl font-black italic underline decoration-[1px] md:decoration-[2px] underline-offset-[16px] md:underline-offset-[24px] hover:text-yellow-600 transition-all duration-700 block break-all decoration-zinc-200 hover:decoration-yellow-600">
                   Lyfang011@gmail.com
                 </a>
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold tracking-widest text-black/30 uppercase">Location</p>
-                <p className="text-lg md:text-xl font-black italic flex items-center lg:justify-end gap-2">
-                  <MapPin size={20} className="text-yellow-600"/> PHNOM PENH, CAMBODIA
+              <div className="space-y-3">
+                <p className="text-[11px] font-black tracking-[0.4em] text-black/30 uppercase">Location Base</p>
+                <p className="text-xl md:text-3xl font-black italic flex items-center lg:justify-end gap-3">
+                  <MapPin size={28} className="text-yellow-600"/> PHNOM PENH, CAMBODIA
                 </p>
               </div>
             </div>
           </div>
           
-          <div className="pt-12 border-t border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-8 w-full">
-            <p className="text-[10px] font-black tracking-[0.3em] uppercase text-black/20 text-center md:text-left">
-              © 2026 HUN LYFANG. ALL RIGHTS RESERVED.
+          <div className="pt-16 border-t border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-10 w-full">
+            <p className="text-[11px] font-black tracking-[0.5em] uppercase text-black/30 text-center md:text-left">
+              © 2026 HUN LYFANG. ENGINEERED FOR EXCELLENCE.
             </p>
-            <div className="flex flex-wrap justify-center gap-6 md:gap-12 text-[10px] font-black tracking-[0.2em] uppercase">
+            <div className="flex flex-wrap justify-center gap-10 md:gap-16 text-[11px] font-black tracking-[0.3em] uppercase">
               <a href="https://www.linkedin.com/in/hun-lyfang-4531073a5" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-600 transition-all flex items-center gap-2">LINKEDIN</a>
               <a href="https://www.instagram.com/litler_jews/" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-600 transition-all flex items-center gap-2">INSTAGRAM</a>
               <a href="https://t.me/LyfangHun" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-600 transition-all flex items-center gap-2">TELEGRAM</a>
@@ -503,35 +543,67 @@ const App = () => {
       </footer>
 
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        
+        html {
+          scroll-behavior: smooth;
+        }
+        
+        body {
+          font-family: 'Inter', sans-serif;
+        }
+
+        .noise-bg {
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
         .ease-expo {
           transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
         }
+        
         @keyframes marquee {
           0% { transform: translate3d(0, 0, 0); }
           100% { transform: translate3d(-100%, 0, 0); }
         }
+        
         @keyframes marquee2 {
           0% { transform: translate3d(100%, 0, 0); }
           100% { transform: translate3d(0, 0, 0); }
         }
+        
         .animate-marquee {
-          animation: marquee 30s linear infinite;
+          animation: marquee 50s linear infinite;
         }
+        
         .animate-marquee2 {
-          animation: marquee2 30s linear infinite;
+          animation: marquee2 50s linear infinite;
         }
+        
         .no-scrollbar::-webkit-scrollbar {
           display: none;
         }
+        
         .no-scrollbar {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
+        
         section {
           outline: none;
         }
+        
         .transform-gpu {
           transform: translate3d(0,0,0);
+        }
+
+        .outline-text {
+          -webkit-text-stroke: 1.5px rgba(250, 204, 21, 0.3);
+          color: transparent;
+        }
+
+        ::selection {
+          background: #facc15;
+          color: #000;
         }
       `}</style>
     </div>
